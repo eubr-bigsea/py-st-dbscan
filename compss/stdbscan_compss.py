@@ -16,11 +16,6 @@ from pycompss.functions.reduce import mergeReduce
 from pycompss.functions.data import chunks
 
 
-# The average runtime complexity of the DBSCAN algorithm is O(n * log n), where n is the number of objects
-# in the database. Our modifications do not change the runtime complexity of the algorithm. DBSCAN has been
-# proven in its ability of processing very large databases.
-
-
 def getIndex(index,size_part):
     return index/size_part
 
@@ -48,7 +43,7 @@ def ST_DBSCAN(df,num_ids, spatial_threshold, temporal_threshold, min_neighbors,n
             ID_RECORD, DATATIME, LATITUDE, LONGITUDE = point
 
             X = retrieve_neighbors(point, df, spatial_threshold, temporal_threshold,numFrag)
-            #print "Neighborhoods: {} -- {}".format(len(neighborhood),neighborhood)
+
 
             if len(X) < min_neighbors:
                 Clusters.set_value(ID_RECORD-1, 'cluster', NOISE)
