@@ -1,5 +1,5 @@
 from datetime import timedelta
-from geopy.distance import great_circle
+import numpy as np
 
 def st_dbscan(df, spatial_threshold, temporal_threshold, min_neighbors):
     """
@@ -68,12 +68,41 @@ def retrieve_neighbors(index_center, df, spatial_threshold, temporal_threshold):
     df = df[(df['date_time'] >= min_time) & (df['date_time'] <= max_time)]
 
     # filter by distance
-    for index, point in df.iterrows():
-        if index != index_center:
-            distance = great_circle(
-                (center_point['latitude'], center_point['longitude']),
-                (point['latitude'], point['longitude'])).meters
-            if distance <= spatial_threshold:
-                neigborhood.append(index)
+    tmp = df.apply(lambda row: great_circle(
+        (center_point['latitude'], center_point['longitude']),
+        (row['latitude'], row['longitude'])), axis=1)
+    x = tmp.loc[:, ] <= spatial_threshold
+    neigborhood = x[x].index.values.tolist()
+    neigborhood.remove(index_center)
 
     return neigborhood
+
+
+def great_circle(a, b):
+    """Great-circle.
+
+    The great-circle distance or orthodromic distance is the shortest
+    distance between two points on the surface of a sphere, measured
+    along the surface of the sphere (as opposed to a straight line
+    through the sphere's interior).
+
+    :Note: use cython in the future
+    :returns: distance in meters.
+    """
+    import math
+    earth_radius = 6371.009
+    lat1, lng1 = np.radians(a[0]), np.radians(a[1])
+    lat2, lng2 = np.radians(b[0]), np.radians(b[1])
+
+    sin_lat1, cos_lat1 = np.sin(lat1), np.cos(lat1)
+    sin_lat2, cos_lat2 = np.sin(lat2), np.cos(lat2)
+
+    delta_lng = lng2 - lng1
+    cos_delta_lng, sin_delta_lng = np.cos(delta_lng), np.sin(delta_lng)
+
+    d = math.atan2(np.sqrt((cos_lat2 * sin_delta_lng) ** 2 +
+                           (cos_lat1 * sin_lat2 -
+                            sin_lat1 * cos_lat2 * cos_delta_lng) ** 2),
+                   sin_lat1 * sin_lat2 + cos_lat1 * cos_lat2 * cos_delta_lng)
+
+    return (earth_radius * d) * 1000
