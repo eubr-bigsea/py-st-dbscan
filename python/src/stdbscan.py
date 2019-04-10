@@ -16,8 +16,8 @@ class STDBSCAN(object):
         :param col_lon:  Longitude column name;
         :param col_time: Date time column name;
         :param spatial_threshold: Maximum geographical coordinate (spatial)
-             distance value;
-        :param temporal_threshold: Maximum non-spatial distance value (meters);
+             distance value (meters);
+        :param temporal_threshold: Maximum non-spatial distance value (seconds);
         :param min_neighbors: Minimum number of points within Eps1 and Eps2
              distance;
         """
