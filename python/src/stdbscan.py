@@ -65,7 +65,7 @@ class STDBSCAN(object):
 
         # initial setup
         df = df[[col_lon, col_lat, col_time]]
-        df = df.assign(cluster=unmarked)
+        df[col_cluster] = unmarked
         df['index'] = range(df.shape[0])
         matrix = df.values
         df.drop(['index'], inplace=True, axis=1)
