@@ -1,7 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from datetime import datetime
 import pandas as pd
 import numpy as np
 from stdbscan import STDBSCAN
+from coordinates import convert_to_utm
 
 
 def parse_dates(x):
@@ -38,16 +42,19 @@ def test_time():
     filename = 'sample.csv'
     df = pd.read_csv(filename, sep=";", converters={'date_time': parse_dates})
     '''
-    transfrom the lon and lat to x and y
-    need to select the right epsg
-    I don't the true epsg of sample, but get the same result by using 
-    epsg:4326 and epsg:32635
+    First, we transform the lon/lat (geographic coordinates) to x and y 
+    (in meters), in order to this, we need to select the right epsg (it 
+    depends on the trace). After that, we run the algorithm. 
     '''
-    st_dbscan = STDBSCAN(col_lat='latitude', col_lon='longitude',
-                         col_time='date_time', spatial_threshold=500,
-                         temporal_threshold=600, min_neighbors=5)
-    df = st_dbscan.projection(df, p1_str='epsg:4326', p2_str='epsg:32635')
-    result_t600 = st_dbscan.run(df)
+    st_dbscan = STDBSCAN(spatial_threshold=500, temporal_threshold=600,
+                         min_neighbors=5)
+
+    df = convert_to_utm(df, src_epsg=4326, dst_epsg=32633,
+                        col_lat='latitude', col_lon='longitude')
+
+    result_t600 = st_dbscan.fit_transform(df, col_lat='latitude',
+                                          col_lon='longitude',
+                                          col_time='date_time')
     return result_t600
 
 

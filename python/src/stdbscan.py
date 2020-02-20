@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta
@@ -7,44 +7,29 @@ import pyproj
 
 class STDBSCAN(object):
 
-    def __init__(self, col_lat, col_lon, col_time, spatial_threshold=500.0, 
-                 temporal_threshold=60.0, min_neighbors=15):
+    def __init__(self, spatial_threshold=500.0, temporal_threshold=60.0,
+                 min_neighbors=15):
         """
-        Python st-dbscan implementation.
+        Python ST-DBSCAN implementation.
 
-        :param col_lat: Latitude column name;
-        :param col_lon:  Longitude column name;
-        :param col_time: Date time column name;
+        Because this algorithm needs to calculate multiple distances between
+        points, it optimizes by assuming latitude and longitude columns in
+        UTM projection. If it is not, convert them by using the
+        `coordinates.convert_to_utm` available method.
+
+        UTM projects onto a cylinder, and a cylinder is essentially flat (zero
+        Gaussian curvature) so the Euclidean formula would be accurate for
+        points on the cylinder (same Zone).
+
         :param spatial_threshold: Maximum geographical coordinate (spatial)
              distance value (meters);
         :param temporal_threshold: Maximum non-spatial distance value (seconds);
         :param min_neighbors: Minimum number of points within Eps1 and Eps2
              distance;
         """
-        self.col_lat = col_lat
-        self.col_lon = col_lon
-        self.col_time = col_time
         self.spatial_threshold = spatial_threshold
         self.temporal_threshold = temporal_threshold
         self.min_neighbors = min_neighbors
-
-    def projection(self, df, p1_str='epsg:4326', p2_str='epsg:3395'):
-        """
-        Cython wrapper to converts from geographic (longitude,latitude)
-        to native map projection (x,y) coordinates. It needs to select the
-        right epsg. Values of x and y are given in meters
-        """
-        p1 = pyproj.Proj(init=p1_str)
-        p2 = pyproj.Proj(init=p2_str)
-        lon = df[self.col_lon].values
-        lat = df[self.col_lat].values
-        x1, y1 = p1(lon, lat)
-        x2, y2 = pyproj.transform(p1, p2, x1, y1, radians=True)
-        df[self.col_lon] = x2
-        df[self.col_lat] = y2
-
-        print df
-        return df
 
     def _retrieve_neighbors(self, index_center, matrix):
 
@@ -64,13 +49,14 @@ class STDBSCAN(object):
 
         return neigborhood
 
-    def run(self, df):
+    def fit_transform(self, df, col_lat, col_lon, col_time,
+                      col_cluster='cluster'):
         """
-        INPUTS:
-            df={o1,o2,...,on} Set of objects;
-
-        OUTPUT:
-            C = {c1,c2,...,ck} Set of clusters
+        :param df: DataFrame input
+        :param col_lat: Latitude column name;
+        :param col_lon:  Longitude column name;
+        :param col_time: Date time column name;
+        :param col_cluster: Alias for predicted cluster (default, 'cluster');
         """
         cluster_label = 0
         noise = -1
@@ -78,7 +64,7 @@ class STDBSCAN(object):
         stack = []
 
         # initial setup
-        df = df[[self.col_lon, self.col_lat, self.col_time]]
+        df = df[[col_lon, col_lat, col_time]]
         df = df.assign(cluster=unmarked)
         df['index'] = range(df.shape[0])
         matrix = df.values
@@ -117,6 +103,6 @@ class STDBSCAN(object):
                                     matrix[neig_index, 3] = cluster_label
                                     stack.append(neig_index)
 
-        df['cluster'] = matrix[:, 3]
+        df[col_cluster] = matrix[:, 3]
         return df
 
